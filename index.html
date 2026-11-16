@@ -14,42 +14,44 @@
 body {
     margin: 0;
     min-height: 100vh;
-    background: #efebf0;
-    font-family: Segoe UI, sans-serif;
-    color: #705375;
+    padding: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    background: #efebf0;
+    color: #705375;
+    font-family: "Segoe UI", sans-serif;
 }
 
 .container {
-    background: white;
     width: 100%;
-    max-width: 480px;
+    max-width: 490px;
     padding: 35px;
+    background: white;
     border-radius: 24px;
     box-shadow: 0 8px 30px #70537518;
     text-align: center;
 }
 
 h1 {
-    margin-bottom: 8px;
+    margin: 0 0 8px;
+    font-size: 28px;
 }
 
 .subtitle {
-    color: #9b879e;
+    color: #a08da4;
     font-size: 14px;
     margin-bottom: 28px;
 }
 
 .upload {
+    display: block;
+    padding: 30px 15px;
     border: 2px dashed #dab8e0;
     border-radius: 16px;
-    padding: 30px 15px;
+    background: #faf7fb;
     cursor: pointer;
     transition: 0.2s;
-    background: #faf7fb;
 }
 
 .upload:hover {
@@ -58,7 +60,7 @@ h1 {
 }
 
 .upload-icon {
-    font-size: 38px;
+    font-size: 40px;
     margin-bottom: 10px;
 }
 
@@ -67,13 +69,12 @@ input[type="file"] {
 }
 
 .filename {
-    margin-top: 15px;
+    margin-top: 12px;
     font-size: 13px;
     overflow-wrap: anywhere;
-    color: #705375;
 }
 
-label {
+label.field-label {
     display: block;
     text-align: left;
     margin: 22px 0 8px;
@@ -85,8 +86,8 @@ select {
     padding: 13px;
     border: 1px solid #dab8e0;
     border-radius: 10px;
-    color: #705375;
     background: white;
+    color: #705375;
     font-size: 15px;
 }
 
@@ -113,12 +114,12 @@ button:disabled {
 }
 
 .progress {
-    width: 100%;
     height: 8px;
-    background: #efebf0;
-    border-radius: 20px;
-    margin-top: 20px;
+    width: 100%;
+    margin-top: 22px;
     overflow: hidden;
+    border-radius: 20px;
+    background: #efebf0;
 }
 
 .progress-bar {
@@ -129,25 +130,44 @@ button:disabled {
 }
 
 .status {
+    margin-top: 13px;
     font-size: 13px;
-    margin-top: 12px;
     color: #896a90;
+    overflow-wrap: anywhere;
+}
+
+.result {
+    display: none;
+    margin-top: 22px;
+    padding: 18px;
+    background: #faf7fb;
+    border-radius: 14px;
+}
+
+audio {
+    width: 100%;
+    margin-top: 12px;
 }
 
 .download {
-    display: none;
-    text-decoration: none;
-    display: none;
+    display: block;
+    margin-top: 14px;
+    padding: 13px;
     background: #dab8e0;
     color: #543c59;
-    padding: 13px;
-    border-radius: 12px;
-    margin-top: 15px;
+    border-radius: 10px;
+    text-decoration: none;
     font-weight: 600;
 }
 
 .download:hover {
     background: #cda6d6;
+}
+
+.note {
+    margin-top: 22px;
+    color: #a08da4;
+    font-size: 11px;
 }
 </style>
 </head>
@@ -156,7 +176,7 @@ button:disabled {
 
 <div class="container">
 
-    <h1>Video to Audio</h1>
+    <h1>Video to Audio ♫</h1>
 
     <p class="subtitle">
         Extract audio from your video easily ^^
@@ -165,7 +185,7 @@ button:disabled {
     <label class="upload" for="video">
         <div class="upload-icon">♫</div>
         <strong>Choose a video</strong>
-        <p style="font-size:13px;color:#9b879e">
+        <p style="font-size:13px;color:#a08da4">
             Click here to upload a file
         </p>
         <div class="filename" id="filename">
@@ -173,9 +193,15 @@ button:disabled {
         </div>
     </label>
 
-    <input type="file" id="video" accept="video/*">
+    <input
+        type="file"
+        id="video"
+        accept="video/*"
+    >
 
-    <label for="format">Audio format</label>
+    <label class="field-label" for="format">
+        Audio format
+    </label>
 
     <select id="format">
         <option value="mp3">MP3</option>
@@ -197,148 +223,286 @@ button:disabled {
         Waiting for a video...
     </div>
 
-    <a class="download" id="download">
-        Download audio
-    </a>
+    <div class="result" id="result">
+
+        <strong>Conversion completed! ✓</strong>
+
+        <audio id="audio" controls></audio>
+
+        <a class="download" id="download">
+            ↓ Download audio
+        </a>
+
+    </div>
+
+    <p class="note">
+        Your files are processed locally in your browser.
+        Nothing is uploaded to a server.
+    </p>
 
 </div>
 
-<script type="module">
-import { FFmpeg } from
-"https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js";
+<!-- Local FFmpeg library -->
+<script src="./libs/ffmpeg.js"></script>
 
-import { toBlobURL } from
-"https://unpkg.com/@ffmpeg/util@0.12.2/dist/esm/index.js";
-
-const ffmpeg = new FFmpeg();
-
+<script>
 const videoInput = document.getElementById("video");
 const formatInput = document.getElementById("format");
 const convertButton = document.getElementById("convert");
+
+const filename = document.getElementById("filename");
 const status = document.getElementById("status");
 const progress = document.getElementById("progress");
+
+const result = document.getElementById("result");
+const audio = document.getElementById("audio");
 const download = document.getElementById("download");
-const filename = document.getElementById("filename");
 
 let selectedFile = null;
+let ffmpeg = null;
 let isLoaded = false;
+let audioURL = null;
+
+function setStatus(message) {
+    status.textContent = message;
+}
+
+function resetResult() {
+    result.style.display = "none";
+
+    if (audioURL) {
+        URL.revokeObjectURL(audioURL);
+        audioURL = null;
+    }
+
+    audio.removeAttribute("src");
+    download.removeAttribute("href");
+
+    progress.style.width = "0%";
+}
 
 videoInput.addEventListener("change", () => {
+
     selectedFile = videoInput.files[0];
 
-    if (selectedFile) {
-        filename.textContent = selectedFile.name;
-        status.textContent = "Video selected!";
-        download.style.display = "none";
-        progress.style.width = "0%";
-    }
+    if (!selectedFile) return;
+
+    filename.textContent = selectedFile.name;
+
+    resetResult();
+
+    setStatus("Video selected! Ready to convert.");
+
 });
 
-ffmpeg.on("progress", ({ progress: value }) => {
-    const percent = Math.round(value * 100);
-    progress.style.width = percent + "%";
-});
+async function loadFFmpeg() {
+
+    if (isLoaded) return;
+
+    setStatus("Loading FFmpeg... Please wait.");
+
+    if (!window.FFmpegWASM) {
+        throw new Error(
+            "FFmpeg library not found. Check the libs folder."
+        );
+    }
+
+    const { FFmpeg } = window.FFmpegWASM;
+
+    ffmpeg = new FFmpeg();
+
+    ffmpeg.on("progress", ({ progress: value }) => {
+
+        const percent = Math.max(
+            0,
+            Math.min(100, Math.round(value * 100))
+        );
+
+        progress.style.width = percent + "%";
+
+    });
+
+    ffmpeg.on("log", ({ message }) => {
+        console.log("[FFmpeg]", message);
+    });
+
+    await ffmpeg.load({
+
+        coreURL: new URL(
+            "./libs/ffmpeg-core.js",
+            window.location.href
+        ).href,
+
+        wasmURL: new URL(
+            "./libs/ffmpeg-core.wasm",
+            window.location.href
+        ).href,
+
+        classWorkerURL: new URL(
+            "./libs/814.ffmpeg.js",
+            window.location.href
+        ).href
+
+    });
+
+    isLoaded = true;
+
+}
 
 convertButton.addEventListener("click", async () => {
 
     if (!selectedFile) {
-        status.textContent = "Please select a video first!";
+        setStatus("Please select a video first!");
         return;
     }
 
     convertButton.disabled = true;
-    download.style.display = "none";
+    resetResult();
+
+    let inputName = "input_video";
+    let outputName = null;
 
     try {
 
-        status.textContent = "Loading converter...";
+        await loadFFmpeg();
 
-        if (!isLoaded) {
-            const baseURL =
-                "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+        const format = formatInput.value;
 
-            await ffmpeg.load({
-                coreURL: await toBlobURL(
-                    `${baseURL}/ffmpeg-core.js`,
-                    "text/javascript"
-                ),
-                wasmURL: await toBlobURL(
-                    `${baseURL}/ffmpeg-core.wasm`,
-                    "application/wasm"
-                )
-            });
+        const codecs = {
 
-            isLoaded = true;
-        }
+            mp3: [
+                "-c:a", "libmp3lame",
+                "-b:a", "192k"
+            ],
 
-        status.textContent = "Preparing video...";
+            wav: [
+                "-c:a", "pcm_s16le"
+            ],
 
-        const extension = selectedFile.name.split(".").pop();
-        const inputName = `input.${extension}`;
-        const outputFormat = formatInput.value;
-        const outputName = `audio.${outputFormat}`;
+            ogg: [
+                "-c:a", "libvorbis",
+                "-q:a", "5"
+            ],
+
+            flac: [
+                "-c:a", "flac"
+            ],
+
+            aac: [
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-f", "adts"
+            ]
+
+        };
+
+        outputName = "output." + format;
+
+        setStatus("Reading video...");
+
+        const fileData = new Uint8Array(
+            await selectedFile.arrayBuffer()
+        );
 
         await ffmpeg.writeFile(
             inputName,
-            new Uint8Array(await selectedFile.arrayBuffer())
+            fileData
         );
 
-        status.textContent = "Extracting audio...";
+        setStatus("Extracting audio...");
 
-        const codecs = {
-            mp3: ["-c:a", "libmp3lame", "-b:a", "192k"],
-            wav: ["-c:a", "pcm_s16le"],
-            ogg: ["-c:a", "libvorbis", "-q:a", "5"],
-            flac: ["-c:a", "flac"],
-            aac: ["-c:a", "aac", "-b:a", "192k"]
-        };
+        const exitCode = await ffmpeg.exec([
 
-        await ffmpeg.exec([
             "-i", inputName,
             "-vn",
-            ...codecs[outputFormat],
+            "-map", "0:a:0",
+            "-sn",
+            "-dn",
+            ...codecs[format],
             outputName
+
         ]);
+
+        if (exitCode !== 0) {
+            throw new Error(
+                "FFmpeg could not convert this video. Check its audio track and format."
+            );
+        }
+
+        setStatus("Preparing audio file...");
 
         const data = await ffmpeg.readFile(outputName);
 
+        if (!data || data.length === 0) {
+            throw new Error("The output audio file is empty.");
+        }
+
         const mimeTypes = {
+
             mp3: "audio/mpeg",
             wav: "audio/wav",
             ogg: "audio/ogg",
             flac: "audio/flac",
             aac: "audio/aac"
+
         };
 
-        const blob = new Blob([data], {
-            type: mimeTypes[outputFormat]
-        });
+        const blob = new Blob(
+            [data],
+            { type: mimeTypes[format] }
+        );
 
-        const url = URL.createObjectURL(blob);
+        audioURL = URL.createObjectURL(blob);
 
-        download.href = url;
+        audio.src = audioURL;
+
+        const originalName = selectedFile.name.replace(
+            /\.[^/.]+$/,
+            ""
+        );
+
+        download.href = audioURL;
         download.download =
-            selectedFile.name.replace(/\.[^/.]+$/, "") +
-            "." + outputFormat;
+            originalName + "." + format;
 
-        download.textContent = "↓ Download " + outputFormat.toUpperCase();
-        download.style.display = "block";
+        download.textContent =
+            "↓ Download " + format.toUpperCase();
 
-        status.textContent = "Conversion completed! ✓";
         progress.style.width = "100%";
 
-        await ffmpeg.deleteFile(inputName);
-        await ffmpeg.deleteFile(outputName);
+        result.style.display = "block";
+
+        setStatus("Successfully converted! ✓");
 
     } catch (error) {
 
-        console.error(error);
-        status.textContent =
-            "Something went wrong. Check the video or try another format.";
+        console.error("CONVERSION ERROR:", error);
+
+        setStatus(
+            "Error: " +
+            (error.message || String(error))
+        );
 
     } finally {
+
+        if (ffmpeg && isLoaded) {
+
+            try {
+                await ffmpeg.deleteFile(inputName);
+            } catch (e) {}
+
+            if (outputName) {
+                try {
+                    await ffmpeg.deleteFile(outputName);
+                } catch (e) {}
+            }
+
+        }
+
         convertButton.disabled = false;
+
     }
+
 });
 
 </script>
