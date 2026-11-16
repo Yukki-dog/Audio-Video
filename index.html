@@ -4,13 +4,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Video to Audio Converter</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -34,10 +31,7 @@ body {
     text-align: center;
 }
 
-h1 {
-    margin: 0 0 8px;
-    font-size: 28px;
-}
+h1 { margin: 0 0 8px; }
 
 .subtitle {
     color: #a08da4;
@@ -65,9 +59,7 @@ h1 {
     margin-bottom: 10px;
 }
 
-input[type="file"] {
-    display: none;
-}
+input[type="file"] { display: none; }
 
 .filename {
     margin-top: 12px;
@@ -102,12 +94,9 @@ button {
     color: white;
     font-size: 15px;
     cursor: pointer;
-    transition: 0.2s;
 }
 
-button:hover {
-    background: #896a90;
-}
+button:hover { background: #896a90; }
 
 button:disabled {
     opacity: 0.5;
@@ -161,10 +150,6 @@ audio {
     font-weight: 600;
 }
 
-.download:hover {
-    background: #cda6d6;
-}
-
 .note {
     margin-top: 22px;
     color: #a08da4;
@@ -208,9 +193,7 @@ audio {
         <option value="aac">AAC</option>
     </select>
 
-    <button id="convert">
-        Convert to audio
-    </button>
+    <button id="convert">Convert to audio</button>
 
     <div class="progress">
         <div class="progress-bar" id="progress"></div>
@@ -222,9 +205,7 @@ audio {
 
     <div class="result" id="result">
         <strong>Conversion completed! ✓</strong>
-
         <audio id="audio" controls></audio>
-
         <a class="download" id="download">
             ↓ Download audio
         </a>
@@ -272,29 +253,24 @@ function resetResult() {
 
     audio.removeAttribute("src");
     download.removeAttribute("href");
-
     progress.style.width = "0%";
 }
 
 videoInput.addEventListener("change", () => {
-
     selectedFile = videoInput.files[0];
 
     if (!selectedFile) return;
 
     filename.textContent = selectedFile.name;
-
     resetResult();
-
     setStatus("Video selected! Ready to convert.");
-
 });
 
 async function loadFFmpeg() {
 
     if (isLoaded) return;
 
-    setStatus("Loading converter...");
+    setStatus("Loading FFmpeg... Please wait.");
 
     if (!window.FFmpegWASM) {
         throw new Error(
@@ -319,30 +295,23 @@ async function loadFFmpeg() {
         console.log("[FFmpeg]", message);
     });
 
-    const base = new URL(
-        "./",
-        window.location.href
-    );
+    const coreBase =
+        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/";
 
     await ffmpeg.load({
 
-        coreURL: new URL(
-            "ffmpeg-core.js",
-            base
-        ).href,
+        coreURL:
+            coreBase + "ffmpeg-core.js",
 
         wasmURL:
-        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm",
+            coreBase + "ffmpeg-core.wasm",
 
-        classWorkerURL: new URL(
-            "814.ffmpeg.js",
-            base
-        ).href
+        classWorkerURL:
+            new URL("./814.ffmpeg.js", window.location.href).href
 
     });
 
     isLoaded = true;
-
 }
 
 convertButton.addEventListener("click", async () => {
@@ -365,31 +334,11 @@ convertButton.addEventListener("click", async () => {
         const format = formatInput.value;
 
         const codecs = {
-
-            mp3: [
-                "-c:a", "libmp3lame",
-                "-b:a", "192k"
-            ],
-
-            wav: [
-                "-c:a", "pcm_s16le"
-            ],
-
-            ogg: [
-                "-c:a", "libvorbis",
-                "-q:a", "5"
-            ],
-
-            flac: [
-                "-c:a", "flac"
-            ],
-
-            aac: [
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-f", "adts"
-            ]
-
+            mp3: ["-c:a", "libmp3lame", "-b:a", "192k"],
+            wav: ["-c:a", "pcm_s16le"],
+            ogg: ["-c:a", "libvorbis", "-q:a", "5"],
+            flac: ["-c:a", "flac"],
+            aac: ["-c:a", "aac", "-b:a", "192k", "-f", "adts"]
         };
 
         outputName = "output." + format;
@@ -400,15 +349,11 @@ convertButton.addEventListener("click", async () => {
             await selectedFile.arrayBuffer()
         );
 
-        await ffmpeg.writeFile(
-            inputName,
-            fileData
-        );
+        await ffmpeg.writeFile(inputName, fileData);
 
         setStatus("Extracting audio...");
 
         const exitCode = await ffmpeg.exec([
-
             "-i", inputName,
             "-vn",
             "-map", "0:a:0",
@@ -416,7 +361,6 @@ convertButton.addEventListener("click", async () => {
             "-dn",
             ...codecs[format],
             outputName
-
         ]);
 
         if (exitCode !== 0) {
@@ -434,13 +378,11 @@ convertButton.addEventListener("click", async () => {
         }
 
         const mimeTypes = {
-
             mp3: "audio/mpeg",
             wav: "audio/wav",
             ogg: "audio/ogg",
             flac: "audio/flac",
             aac: "audio/aac"
-
         };
 
         const blob = new Blob(
@@ -449,7 +391,6 @@ convertButton.addEventListener("click", async () => {
         );
 
         audioURL = URL.createObjectURL(blob);
-
         audio.src = audioURL;
 
         const originalName = selectedFile.name.replace(
@@ -458,14 +399,10 @@ convertButton.addEventListener("click", async () => {
         );
 
         download.href = audioURL;
-        download.download =
-            originalName + "." + format;
-
-        download.textContent =
-            "↓ Download " + format.toUpperCase();
+        download.download = originalName + "." + format;
+        download.textContent = "↓ Download " + format.toUpperCase();
 
         progress.style.width = "100%";
-
         result.style.display = "block";
 
         setStatus("Successfully converted! ✓");
@@ -481,7 +418,6 @@ convertButton.addEventListener("click", async () => {
     } finally {
 
         if (ffmpeg && isLoaded) {
-
             try {
                 await ffmpeg.deleteFile(inputName);
             } catch (e) {}
@@ -491,13 +427,10 @@ convertButton.addEventListener("click", async () => {
                     await ffmpeg.deleteFile(outputName);
                 } catch (e) {}
             }
-
         }
 
         convertButton.disabled = false;
-
     }
-
 });
 
 </script>
