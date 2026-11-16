@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video to Audio Converter</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #efebf0;
+    font-family: Segoe UI, sans-serif;
+    color: #705375;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    width: 100%;
+    max-width: 480px;
+    padding: 35px;
+    border-radius: 24px;
+    box-shadow: 0 8px 30px #70537518;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: #9b879e;
+    font-size: 14px;
+    margin-bottom: 28px;
+}
+
+.upload {
+    border: 2px dashed #dab8e0;
+    border-radius: 16px;
+    padding: 30px 15px;
+    cursor: pointer;
+    transition: 0.2s;
+    background: #faf7fb;
+}
+
+.upload:hover {
+    background: #f3eaf5;
+    border-color: #705375;
+}
+
+.upload-icon {
+    font-size: 38px;
+    margin-bottom: 10px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.filename {
+    margin-top: 15px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    color: #705375;
+}
+
+label {
+    display: block;
+    text-align: left;
+    margin: 22px 0 8px;
+    font-weight: 600;
+}
+
+select {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #dab8e0;
+    border-radius: 10px;
+    color: #705375;
+    background: white;
+    font-size: 15px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    border: none;
+    border-radius: 12px;
+    background: #705375;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #896a90;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.progress {
+    width: 100%;
+    height: 8px;
+    background: #efebf0;
+    border-radius: 20px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #b68ac0;
+    transition: width 0.2s;
+}
+
+.status {
+    font-size: 13px;
+    margin-top: 12px;
+    color: #896a90;
+}
+
+.download {
+    display: none;
+    text-decoration: none;
+    display: none;
+    background: #dab8e0;
+    color: #543c59;
+    padding: 13px;
+    border-radius: 12px;
+    margin-top: 15px;
+    font-weight: 600;
+}
+
+.download:hover {
+    background: #cda6d6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Video to Audio</h1>
+
+    <p class="subtitle">
+        Extract audio from your video easily ^^
+    </p>
+
+    <label class="upload" for="video">
+        <div class="upload-icon">♫</div>
+        <strong>Choose a video</strong>
+        <p style="font-size:13px;color:#9b879e">
+            Click here to upload a file
+        </p>
+        <div class="filename" id="filename">
+            No file selected
+        </div>
+    </label>
+
+    <input type="file" id="video" accept="video/*">
+
+    <label for="format">Audio format</label>
+
+    <select id="format">
+        <option value="mp3">MP3</option>
+        <option value="wav">WAV</option>
+        <option value="ogg">OGG</option>
+        <option value="flac">FLAC</option>
+        <option value="aac">AAC</option>
+    </select>
+
+    <button id="convert">
+        Convert to audio
+    </button>
+
+    <div class="progress">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+
+    <div class="status" id="status">
+        Waiting for a video...
+    </div>
+
+    <a class="download" id="download">
+        Download audio
+    </a>
+
+</div>
+
+<script type="module">
+import { FFmpeg } from
+"https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js";
+
+import { toBlobURL } from
+"https://unpkg.com/@ffmpeg/util@0.12.2/dist/esm/index.js";
+
+const ffmpeg = new FFmpeg();
+
+const videoInput = document.getElementById("video");
+const formatInput = document.getElementById("format");
+const convertButton = document.getElementById("convert");
+const status = document.getElementById("status");
+const progress = document.getElementById("progress");
+const download = document.getElementById("download");
+const filename = document.getElementById("filename");
+
+let selectedFile = null;
+let isLoaded = false;
+
+videoInput.addEventListener("change", () => {
+    selectedFile = videoInput.files[0];
+
+    if (selectedFile) {
+        filename.textContent = selectedFile.name;
+        status.textContent = "Video selected!";
+        download.style.display = "none";
+        progress.style.width = "0%";
+    }
+});
+
+ffmpeg.on("progress", ({ progress: value }) => {
+    const percent = Math.round(value * 100);
+    progress.style.width = percent + "%";
+});
+
+convertButton.addEventListener("click", async () => {
+
+    if (!selectedFile) {
+        status.textContent = "Please select a video first!";
+        return;
+    }
+
+    convertButton.disabled = true;
+    download.style.display = "none";
+
+    try {
+
+        status.textContent = "Loading converter...";
+
+        if (!isLoaded) {
+            const baseURL =
+                "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+
+            await ffmpeg.load({
+                coreURL: await toBlobURL(
+                    `${baseURL}/ffmpeg-core.js`,
+                    "text/javascript"
+                ),
+                wasmURL: await toBlobURL(
+                    `${baseURL}/ffmpeg-core.wasm`,
+                    "application/wasm"
+                )
+            });
+
+            isLoaded = true;
+        }
+
+        status.textContent = "Preparing video...";
+
+        const extension = selectedFile.name.split(".").pop();
+        const inputName = `input.${extension}`;
+        const outputFormat = formatInput.value;
+        const outputName = `audio.${outputFormat}`;
+
+        await ffmpeg.writeFile(
+            inputName,
+            new Uint8Array(await selectedFile.arrayBuffer())
+        );
+
+        status.textContent = "Extracting audio...";
+
+        const codecs = {
+            mp3: ["-c:a", "libmp3lame", "-b:a", "192k"],
+            wav: ["-c:a", "pcm_s16le"],
+            ogg: ["-c:a", "libvorbis", "-q:a", "5"],
+            flac: ["-c:a", "flac"],
+            aac: ["-c:a", "aac", "-b:a", "192k"]
+        };
+
+        await ffmpeg.exec([
+            "-i", inputName,
+            "-vn",
+            ...codecs[outputFormat],
+            outputName
+        ]);
+
+        const data = await ffmpeg.readFile(outputName);
+
+        const mimeTypes = {
+            mp3: "audio/mpeg",
+            wav: "audio/wav",
+            ogg: "audio/ogg",
+            flac: "audio/flac",
+            aac: "audio/aac"
+        };
+
+        const blob = new Blob([data], {
+            type: mimeTypes[outputFormat]
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        download.href = url;
+        download.download =
+            selectedFile.name.replace(/\.[^/.]+$/, "") +
+            "." + outputFormat;
+
+        download.textContent = "↓ Download " + outputFormat.toUpperCase();
+        download.style.display = "block";
+
+        status.textContent = "Conversion completed! ✓";
+        progress.style.width = "100%";
+
+        await ffmpeg.deleteFile(inputName);
+        await ffmpeg.deleteFile(outputName);
+
+    } catch (error) {
+
+        console.error(error);
+        status.textContent =
+            "Something went wrong. Check the video or try another format.";
+
+    } finally {
+        convertButton.disabled = false;
+    }
+});
+
+</script>
+
+</body>
+</html>
