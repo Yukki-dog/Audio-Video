@@ -4,6 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Video to Audio Converter</title>
 
 <style>
@@ -74,7 +75,7 @@ input[type="file"] {
     overflow-wrap: anywhere;
 }
 
-label.field-label {
+.field-label {
     display: block;
     text-align: left;
     margin: 22px 0 8px;
@@ -193,11 +194,7 @@ audio {
         </div>
     </label>
 
-    <input
-        type="file"
-        id="video"
-        accept="video/*"
-    >
+    <input type="file" id="video" accept="video/*">
 
     <label class="field-label" for="format">
         Audio format
@@ -224,7 +221,6 @@ audio {
     </div>
 
     <div class="result" id="result">
-
         <strong>Conversion completed! ✓</strong>
 
         <audio id="audio" controls></audio>
@@ -232,18 +228,16 @@ audio {
         <a class="download" id="download">
             ↓ Download audio
         </a>
-
     </div>
 
     <p class="note">
-        Your files are processed locally in your browser.
+        Files are processed locally in your browser.
         Nothing is uploaded to a server.
     </p>
 
 </div>
 
-<!-- Local FFmpeg library -->
-<script src="./libs/ffmpeg.js"></script>
+<script src="./ffmpeg.js"></script>
 
 <script>
 const videoInput = document.getElementById("video");
@@ -271,6 +265,7 @@ function resetResult() {
     result.style.display = "none";
 
     if (audioURL) {
+        audio.pause();
         URL.revokeObjectURL(audioURL);
         audioURL = null;
     }
@@ -299,11 +294,11 @@ async function loadFFmpeg() {
 
     if (isLoaded) return;
 
-    setStatus("Loading FFmpeg... Please wait.");
+    setStatus("Loading converter...");
 
     if (!window.FFmpegWASM) {
         throw new Error(
-            "FFmpeg library not found. Check the libs folder."
+            "FFmpeg library not found. Check ffmpeg.js."
         );
     }
 
@@ -312,35 +307,36 @@ async function loadFFmpeg() {
     ffmpeg = new FFmpeg();
 
     ffmpeg.on("progress", ({ progress: value }) => {
-
         const percent = Math.max(
             0,
             Math.min(100, Math.round(value * 100))
         );
 
         progress.style.width = percent + "%";
-
     });
 
     ffmpeg.on("log", ({ message }) => {
         console.log("[FFmpeg]", message);
     });
 
+    const base = new URL(
+        "./",
+        window.location.href
+    );
+
     await ffmpeg.load({
 
         coreURL: new URL(
-            "./libs/ffmpeg-core.js",
-            window.location.href
+            "ffmpeg-core.js",
+            base
         ).href,
 
-        wasmURL: new URL(
-            "./libs/ffmpeg-core.wasm",
-            window.location.href
-        ).href,
+        wasmURL:
+        "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm",
 
         classWorkerURL: new URL(
-            "./libs/814.ffmpeg.js",
-            window.location.href
+            "814.ffmpeg.js",
+            base
         ).href
 
     });
@@ -425,16 +421,16 @@ convertButton.addEventListener("click", async () => {
 
         if (exitCode !== 0) {
             throw new Error(
-                "FFmpeg could not convert this video. Check its audio track and format."
+                "FFmpeg could not convert this video."
             );
         }
 
-        setStatus("Preparing audio file...");
+        setStatus("Preparing audio...");
 
         const data = await ffmpeg.readFile(outputName);
 
         if (!data || data.length === 0) {
-            throw new Error("The output audio file is empty.");
+            throw new Error("The output audio is empty.");
         }
 
         const mimeTypes = {
@@ -479,8 +475,7 @@ convertButton.addEventListener("click", async () => {
         console.error("CONVERSION ERROR:", error);
 
         setStatus(
-            "Error: " +
-            (error.message || String(error))
+            "Error: " + (error.message || String(error))
         );
 
     } finally {
